@@ -1,9 +1,12 @@
 import {
   BuyoutResult,
   Contract,
+  LoanResult,
   MarketActionResult,
   Player,
+  RosterActionResult,
   Team,
+  TerminationResult,
 } from "../types";
 
 export const DEFAULT_ROSTER_LIMIT = 5;
@@ -184,6 +187,88 @@ export function buyoutPlayer(
       sellerTeam: updatedSellerTeam,
       player: updatedPlayer,
       feePaid: buyoutCost,
+    },
+  };
+}
+
+/**
+ * Loan Player
+ * Borrows player with a low upfront fee while deducting regular budget.
+ * Sets isLoaned boolean to true and places player on Team.bench.
+ */
+export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
+  const { borrowerTeam, targetPlayer, lendingTeam, loanFee, loanDuration } =
+    params;
+
+  if (targetPlayer.contract.isLoaned) {
+    return {
+      success: false,
+      message: `Player ${targetPlayer.alias} is currently on loan with another team.`,
+      error: "ALREADY_LOANED",
+    };
+  }
+
+  const fee = loanFee !== undefined ? loanFee : calculateLoanFee(targetPlayer);
+  const duration =
+    loanDuration !== undefined
+      ? loanDuration
+      : Math.max(1, targetPlayer.contract.duration);
+
+  if (borrowerTeam.budget < fee) {
+    return {
+      success: false,
+      message: `Insufficient budget for loan fee of ${targetPlayer.alias}. Required: $${fee.toLocaleString()}, Available: $${borrowerTeam.budget.toLocaleString()}`,
+      error: "INSUFFICIENT_BUDGET",
+    };
+  }
+
+  let updatedLendingTeam: Team | undefined = undefined;
+
+  if (lendingTeam) {
+    const foundInLending = findPlayerInTeam(lendingTeam, targetPlayer.id);
+    if (!foundInLending) {
+      return {
+        success: false,
+        message: `Player ${targetPlayer.alias} was not found in the lending team (${lendingTeam.name}).`,
+        error: "PLAYER_NOT_IN_LENDING_TEAM",
+      };
+    }
+
+    const lendingAfterRemoval = removePlayerFromTeam(
+      lendingTeam,
+      targetPlayer.id,
+    );
+    updatedLendingTeam = {
+      ...lendingAfterRemoval,
+      budget: lendingAfterRemoval.budget + fee,
+    };
+  }
+
+  const updatedPlayer: Player = {
+    ...clonePlayer(targetPlayer),
+    contract: {
+      ...targetPlayer.contract,
+      isLoaned: true,
+      duration: duration,
+    },
+    isTransferListed: false,
+  };
+
+  const updatedBorrowerTeam: Team = {
+    ...cloneTeam(borrowerTeam),
+    budget: borrowerTeam.budget - fee,
+    bench: [...borrowerTeam.bench.map(clonePlayer), updatedPlayer],
+  };
+
+  return {
+    success: true,
+    message: `Successfully loaned ${targetPlayer.name} (${targetPlayer.alias}) for ${duration} periods with a fee of $${fee.toLocaleString()}.`,
+    data: {
+      borrowerTeam: updatedBorrowerTeam,
+      lendingTeam: updatedLendingTeam,
+      player: updatedPlayer,
+      feePaid: fee,
+      duration: duration,
     },
   };
 }
