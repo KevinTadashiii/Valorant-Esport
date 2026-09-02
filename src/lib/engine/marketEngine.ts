@@ -272,3 +272,71 @@ export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
     },
   };
 }
+
+/**
+ * Terminate Contract
+ * Unilateral contract termination. Requires team to pay a penalty (severance)
+ * and triggers a morale reduction penalty percentage on remaining roster members.
+ */
+export function terminateContract(
+  params: TerminateParams,
+): MarketActionResult<TerminationResult> {
+  const {
+    team,
+    playerId,
+    penaltyRate = DEFAULT_TERMINATION_PENALTY_RATE,
+    moralePenaltyPercent = DEFAULT_TERMINATION_MORALE_PENALTY_PERCENT,
+  } = params;
+
+  const found = findPlayerInTeam(team, playerId);
+  if (!found) {
+    return {
+      success: false,
+      message: `Player with ID "${playerId}" was not found in team ${team.name}.`,
+      error: "PLAYER_NOT_FOUND",
+    };
+  }
+
+  const targetPlayer = found.player;
+  const penalty = calculateTerminationPenalty(targetPlayer, penaltyRate);
+
+  if (team.budget < penalty) {
+    return {
+      success: false,
+      message: `Team budget is insufficient to pay contract termination penalty of $${penalty.toLocaleString()}. Available: $${team.budget.toLocaleString()}`,
+      error: "INSUFFICIENT_BUDGET",
+    };
+  }
+
+  const teamAfterRemoval = removePlayerFromTeam(team, playerId);
+
+  // Reduce morale of remaining players in roster and bench
+  const applyMoralePenalty = (player: Player): Player => {
+    const cloned = clonePlayer(player);
+    const dropMultiplier = Math.max(0, 1 - moralePenaltyPercent / 100);
+    const updatedMorale = Math.max(
+      MIN_MORALE,
+      Math.min(MAX_MORALE, Math.round(cloned.stats.morale * dropMultiplier)),
+    );
+    cloned.stats.morale = updatedMorale;
+    return cloned;
+  };
+
+  const updatedTeam: Team = {
+    ...teamAfterRemoval,
+    budget: teamAfterRemoval.budget - penalty,
+    roster: teamAfterRemoval.roster.map(applyMoralePenalty),
+    bench: teamAfterRemoval.bench.map(applyMoralePenalty),
+  };
+
+  return {
+    success: true,
+    message: `Contract for ${targetPlayer.name} (${targetPlayer.alias}) was successfully terminated. Penalty paid: $${penalty.toLocaleString()}. Team morale reduced by ${moralePenaltyPercent}%.`,
+    data: {
+      team: updatedTeam,
+      terminatedPlayer: targetPlayer,
+      penaltyPaid: penalty,
+      moralePenaltyApplied: moralePenaltyPercent,
+    },
+  };
+}

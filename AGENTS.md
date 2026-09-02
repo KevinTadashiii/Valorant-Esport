@@ -7,3 +7,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Language & Coding Conventions
+
+- **Language Standard**: All source code, identifiers, and documentation MUST strictly use **English**.
+  - **Identifiers**: Variables, constants, functions, methods, classes, types, and interfaces must be named in English (e.g., `fetchMatchResults`, `teamList`, `isTournamentActive`).
+  - **Comments & Docstrings**: All comments, TODOs, and JSDoc/TSDoc annotations must be written in English.
+  - **Logs & Errors**: Internal logs, exception messages, and debug statements must be in English.
+  - **Files & Directories**: File and folder names must use English naming conventions.
