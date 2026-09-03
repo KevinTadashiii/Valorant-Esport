@@ -8,17 +8,17 @@ export type PlayerRole =
 export type EconomyState = "Full" | "Force" | "Eco";
 
 export interface PlayerStats {
-  aim: number; // 1-100: Kapabilitas raw fragging
-  utility: number; // 1-100: Efisiensi penggunaan utilitas/skill
-  morale: number; // 1-100: Berpengaruh pada performa saat tertinggal skor
-  discipline: number; // 1-100: Mempengaruhi probabilitas terkena 'Random Event' negatif
+  aim: number; // 1-100: Raw fragging capability
+  utility: number; // 1-100: Utility/skill usage efficiency
+  morale: number; // 1-100: Affects performance when trailing in score
+  discipline: number; // 1-100: Affects probability of negative random events
 }
 
 export interface Contract {
-  salary: number; // Gaji per periode/minggu
-  buyout: number; // Nilai terminasi untuk dibeli tim lain
-  isLoaned: boolean; // Status pinjaman
-  duration: number; // Sisa durasi kontrak
+  salary: number; // Salary per period/week
+  buyout: number; // Buyout value for transfer to another team
+  isLoaned: boolean; // Loan status
+  duration: number; // Remaining contract duration
 }
 
 export interface Player {
@@ -37,9 +37,9 @@ export interface Team {
   id: string;
   name: string;
   budget: number;
-  roster: Player[]; // Maksimal/Minimal 5 pemain inti
-  bench: Player[]; // Pemain cadangan
-  winRate?: number; // Rasio win-rate tim
+  roster: Player[]; // Maximum 5 starting players
+  bench: Player[]; // Reserve players
+  winRate?: number; // Team win-rate ratio
 }
 
 export interface MatchState {
@@ -50,7 +50,7 @@ export interface MatchState {
   currentRound: number;
   economyA: EconomyState;
   economyB: EconomyState;
-  matchLog: string[]; // Log teks naratif dari simulasi ronde
+  matchLog: string[]; // Narrative text log from round simulation
   isFinished?: boolean;
   winner?: Team;
 }
