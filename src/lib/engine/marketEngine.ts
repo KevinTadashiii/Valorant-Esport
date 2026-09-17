@@ -39,7 +39,7 @@ export interface TerminateParams {
 }
 
 /**
- * Helper to clone player object deeply
+ * Helper to clone a player object deeply
  */
 export function clonePlayer(player: Player): Player {
   return {
@@ -50,7 +50,7 @@ export function clonePlayer(player: Player): Player {
 }
 
 /**
- * Helper to clone team object deeply
+ * Helper to clone a team object deeply
  */
 export function cloneTeam(team: Team): Team {
   return {
@@ -100,7 +100,7 @@ export function removePlayerFromTeam(team: Team, playerId: string): Team {
 }
 
 /**
- * Calculate estimated loan fee for a player
+ * Calculate the estimated loan fee for a player
  */
 export function calculateLoanFee(
   player: Player,
@@ -110,7 +110,7 @@ export function calculateLoanFee(
 }
 
 /**
- * Calculate contract termination penalty (severance for remaining contract duration)
+ * Calculate the termination penalty (remaining contract severance) for a player
  */
 export function calculateTerminationPenalty(
   player: Player,
@@ -123,9 +123,10 @@ export function calculateTerminationPenalty(
 }
 
 /**
- * Buy Out Player
- * Validates team budget. If sufficient, deducts budget by player.contract.buyout,
- * removes player relation from previous team (if any), and adds player to the new team's bench.
+ * 1. Buy Out Player
+ * Validates the buyer team's budget. If sufficient, deducts the buyout cost
+ * from the buyer's budget, removes the player from the seller team (if provided),
+ * and appends the player to the buyer's bench.
  */
 export function buyoutPlayer(
   params: BuyoutParams,
@@ -136,7 +137,7 @@ export function buyoutPlayer(
   if (buyerTeam.budget < buyoutCost) {
     return {
       success: false,
-      message: `Insufficient budget to buyout ${targetPlayer.alias}. Required: $${buyoutCost.toLocaleString()}, Available: $${buyerTeam.budget.toLocaleString()}`,
+      message: `Insufficient budget to buy out ${targetPlayer.alias}. Required: $${buyoutCost.toLocaleString()}, Available: $${buyerTeam.budget.toLocaleString()}`,
       error: "INSUFFICIENT_BUDGET",
     };
   }
@@ -148,7 +149,7 @@ export function buyoutPlayer(
     if (!foundInSeller) {
       return {
         success: false,
-        message: `Player ${targetPlayer.alias} was not found in the seller team (${sellerTeam.name}).`,
+        message: `Player ${targetPlayer.alias} not found in seller team (${sellerTeam.name}).`,
         error: "PLAYER_NOT_IN_SELLER_TEAM",
       };
     }
@@ -181,7 +182,7 @@ export function buyoutPlayer(
 
   return {
     success: true,
-    message: `Successfully bought out ${targetPlayer.name} (${targetPlayer.alias}) for $${buyoutCost.toLocaleString()}. Player added to bench.`,
+    message: `Successfully purchased ${targetPlayer.name} (${targetPlayer.alias}) for $${buyoutCost.toLocaleString()}. Player has been added to the bench.`,
     data: {
       buyerTeam: updatedBuyerTeam,
       sellerTeam: updatedSellerTeam,
@@ -192,9 +193,9 @@ export function buyoutPlayer(
 }
 
 /**
- * Loan Player
- * Borrows player with a low upfront fee while deducting regular budget.
- * Sets isLoaned boolean to true and places player on Team.bench.
+ * 2. Loan Player
+ * Borrows a player at a low upfront cost while deducting from the regular budget.
+ * Sets isLoaned to true and places the player on the borrower's bench.
  */
 export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
   const { borrowerTeam, targetPlayer, lendingTeam, loanFee, loanDuration } =
@@ -203,7 +204,7 @@ export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
   if (targetPlayer.contract.isLoaned) {
     return {
       success: false,
-      message: `Player ${targetPlayer.alias} is currently on loan with another team.`,
+      message: `Player ${targetPlayer.alias} is currently on loan to another team.`,
       error: "ALREADY_LOANED",
     };
   }
@@ -217,7 +218,7 @@ export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
   if (borrowerTeam.budget < fee) {
     return {
       success: false,
-      message: `Insufficient budget for loan fee of ${targetPlayer.alias}. Required: $${fee.toLocaleString()}, Available: $${borrowerTeam.budget.toLocaleString()}`,
+      message: `Insufficient budget for ${targetPlayer.alias}'s loan fee. Required: $${fee.toLocaleString()}, Available: $${borrowerTeam.budget.toLocaleString()}`,
       error: "INSUFFICIENT_BUDGET",
     };
   }
@@ -229,7 +230,7 @@ export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
     if (!foundInLending) {
       return {
         success: false,
-        message: `Player ${targetPlayer.alias} was not found in the lending team (${lendingTeam.name}).`,
+        message: `Player ${targetPlayer.alias} not found in lending team (${lendingTeam.name}).`,
         error: "PLAYER_NOT_IN_LENDING_TEAM",
       };
     }
@@ -262,7 +263,7 @@ export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
 
   return {
     success: true,
-    message: `Successfully loaned ${targetPlayer.name} (${targetPlayer.alias}) for ${duration} periods with a fee of $${fee.toLocaleString()}.`,
+    message: `Successfully loaned ${targetPlayer.name} (${targetPlayer.alias}) for ${duration} period(s) at a cost of $${fee.toLocaleString()}.`,
     data: {
       borrowerTeam: updatedBorrowerTeam,
       lendingTeam: updatedLendingTeam,
@@ -274,9 +275,9 @@ export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
 }
 
 /**
- * Terminate Contract
- * Unilateral contract termination. Requires team to pay a penalty (severance)
- * and triggers a morale reduction penalty percentage on remaining roster members.
+ * 3. Terminate Contract
+ * Unilaterally terminates a player's contract. Requires the team to pay a penalty
+ * (severance) and reduces the morale of remaining roster players by the specified percentage.
  */
 export function terminateContract(
   params: TerminateParams,
@@ -292,7 +293,7 @@ export function terminateContract(
   if (!found) {
     return {
       success: false,
-      message: `Player with ID "${playerId}" was not found in team ${team.name}.`,
+      message: `Player with ID "${playerId}" not found in team ${team.name}.`,
       error: "PLAYER_NOT_FOUND",
     };
   }
@@ -303,7 +304,7 @@ export function terminateContract(
   if (team.budget < penalty) {
     return {
       success: false,
-      message: `Team budget is insufficient to pay contract termination penalty of $${penalty.toLocaleString()}. Available: $${team.budget.toLocaleString()}`,
+      message: `Team budget is insufficient to pay the contract termination penalty of $${penalty.toLocaleString()}. Available: $${team.budget.toLocaleString()}`,
       error: "INSUFFICIENT_BUDGET",
     };
   }
@@ -331,12 +332,64 @@ export function terminateContract(
 
   return {
     success: true,
-    message: `Contract for ${targetPlayer.name} (${targetPlayer.alias}) was successfully terminated. Penalty paid: $${penalty.toLocaleString()}. Team morale reduced by ${moralePenaltyPercent}%.`,
+    message: `Contract for ${targetPlayer.name} (${targetPlayer.alias}) has been terminated. Termination penalty: $${penalty.toLocaleString()}. Team morale reduced by ${moralePenaltyPercent}%.`,
     data: {
       team: updatedTeam,
       terminatedPlayer: targetPlayer,
       penaltyPaid: penalty,
       moralePenaltyApplied: moralePenaltyPercent,
+    },
+  };
+}
+
+/**
+ * 4. Roster Management: Swap Starter & Bench Player
+ */
+export function swapRosterAndBench(
+  team: Team,
+  rosterPlayerId: string,
+  benchPlayerId: string,
+): MarketActionResult<RosterActionResult> {
+  const rosterIndex = team.roster.findIndex((p) => p.id === rosterPlayerId);
+  const benchIndex = team.bench.findIndex((p) => p.id === benchPlayerId);
+
+  if (rosterIndex === -1) {
+    return {
+      success: false,
+      message: `Starter player with ID "${rosterPlayerId}" not found in the main roster.`,
+      error: "ROSTER_PLAYER_NOT_FOUND",
+    };
+  }
+
+  if (benchIndex === -1) {
+    return {
+      success: false,
+      message: `Bench player with ID "${benchPlayerId}" not found in the bench.`,
+      error: "BENCH_PLAYER_NOT_FOUND",
+    };
+  }
+
+  const rosterPlayer = clonePlayer(team.roster[rosterIndex]);
+  const benchPlayer = clonePlayer(team.bench[benchIndex]);
+
+  const newRoster = [...team.roster.map(clonePlayer)];
+  const newBench = [...team.bench.map(clonePlayer)];
+
+  newRoster[rosterIndex] = benchPlayer;
+  newBench[benchIndex] = rosterPlayer;
+
+  const updatedTeam: Team = {
+    ...team,
+    roster: newRoster,
+    bench: newBench,
+  };
+
+  return {
+    success: true,
+    message: `Successfully swapped ${benchPlayer.alias} (promoted to Roster) with ${rosterPlayer.alias} (moved to Bench).`,
+    data: {
+      team: updatedTeam,
+      message: `Swapped ${benchPlayer.alias} and ${rosterPlayer.alias}`,
     },
   };
 }
