@@ -7,6 +7,7 @@ import {
   RosterActionResult,
   Team,
   TerminationResult,
+  TransferListingResult,
 } from "../types";
 
 export const DEFAULT_ROSTER_LIMIT = 5;
@@ -390,6 +391,201 @@ export function swapRosterAndBench(
     data: {
       team: updatedTeam,
       message: `Swapped ${benchPlayer.alias} and ${rosterPlayer.alias}`,
+    },
+  };
+}
+
+/**
+ * 5. Move Bench Player to Roster
+ * Moves a player from bench to the starting roster.
+ * If roster is not full (less than DEFAULT_ROSTER_LIMIT), adds directly.
+ * If roster is full, requires a replacement player ID to swap with.
+ */
+export function movePlayerToRoster(
+  team: Team,
+  benchPlayerId: string,
+  replacePlayerId?: string,
+): MarketActionResult<RosterActionResult> {
+  const benchIndex = team.bench.findIndex((p) => p.id === benchPlayerId);
+
+  if (benchIndex === -1) {
+    return {
+      success: false,
+      message: `Bench player with ID "${benchPlayerId}" not found in the bench.`,
+      error: "BENCH_PLAYER_NOT_FOUND",
+    };
+  }
+
+  const benchPlayer = clonePlayer(team.bench[benchIndex]);
+
+  // If roster is not full, simply add the player
+  if (team.roster.length < DEFAULT_ROSTER_LIMIT) {
+    const newRoster = [...team.roster.map(clonePlayer), benchPlayer];
+    const newBench = team.bench
+      .filter((p) => p.id !== benchPlayerId)
+      .map(clonePlayer);
+
+    const updatedTeam: Team = {
+      ...team,
+      roster: newRoster,
+      bench: newBench,
+    };
+
+    return {
+      success: true,
+      message: `Successfully promoted ${benchPlayer.alias} to the starting roster.`,
+      data: {
+        team: updatedTeam,
+        message: `Promoted ${benchPlayer.alias} to Roster`,
+      },
+    };
+  }
+
+  // Roster is full - need a replacement
+  if (!replacePlayerId) {
+    return {
+      success: false,
+      message: `Roster is full (${DEFAULT_ROSTER_LIMIT} players). Specify a player to replace.`,
+      error: "ROSTER_FULL",
+    };
+  }
+
+  const replaceIndex = team.roster.findIndex((p) => p.id === replacePlayerId);
+  if (replaceIndex === -1) {
+    return {
+      success: false,
+      message: `Replacement player with ID "${replacePlayerId}" not found in the roster.`,
+      error: "ROSTER_PLAYER_NOT_FOUND",
+    };
+  }
+
+  const replacedPlayer = clonePlayer(team.roster[replaceIndex]);
+
+  const newRoster = [...team.roster.map(clonePlayer)];
+  const newBench = [...team.bench.map(clonePlayer)];
+
+  newRoster[replaceIndex] = benchPlayer;
+  newBench[benchIndex] = replacedPlayer;
+
+  const updatedTeam: Team = {
+    ...team,
+    roster: newRoster,
+    bench: newBench,
+  };
+
+  return {
+    success: true,
+    message: `Successfully swapped ${replacedPlayer.alias} (moved to Bench) with ${benchPlayer.alias} (promoted to Roster).`,
+    data: {
+      team: updatedTeam,
+      message: `Swapped ${replacedPlayer.alias} and ${benchPlayer.alias}`,
+    },
+  };
+}
+
+/**
+ * 6. Move Roster Player to Bench
+ * Moves a player from the starting roster to the bench.
+ */
+export function movePlayerToBench(
+  team: Team,
+  rosterPlayerId: string,
+): MarketActionResult<RosterActionResult> {
+  const rosterIndex = team.roster.findIndex((p) => p.id === rosterPlayerId);
+
+  if (rosterIndex === -1) {
+    return {
+      success: false,
+      message: `Starter player with ID "${rosterPlayerId}" not found in the main roster.`,
+      error: "ROSTER_PLAYER_NOT_FOUND",
+    };
+  }
+
+  const rosterPlayer = clonePlayer(team.roster[rosterIndex]);
+
+  const newRoster = team.roster
+    .filter((p) => p.id !== rosterPlayerId)
+    .map(clonePlayer);
+  const newBench = [...team.bench.map(clonePlayer), rosterPlayer];
+
+  const updatedTeam: Team = {
+    ...team,
+    roster: newRoster,
+    bench: newBench,
+  };
+
+  return {
+    success: true,
+    message: `Successfully moved ${rosterPlayer.alias} from Roster to Bench.`,
+    data: {
+      team: updatedTeam,
+      message: `Moved ${rosterPlayer.alias} to Bench`,
+    },
+  };
+}
+
+/**
+ * 7. Set Player Transfer Listing
+ * Lists or delists a player on the transfer market with an optional custom buyout.
+ */
+export function setPlayerTransferListing(
+  team: Team,
+  playerId: string,
+  isListed: boolean,
+  customBuyout?: number,
+): MarketActionResult<TransferListingResult> {
+  const found = findPlayerInTeam(team, playerId);
+  if (!found) {
+    return {
+      success: false,
+      message: `Player with ID "${playerId}" not found in team ${team.name}.`,
+      error: "PLAYER_NOT_FOUND",
+    };
+  }
+
+  const { location, index } = found;
+  const targetPlayer = found.player;
+
+  const updatedPlayer: Player = {
+    ...clonePlayer(targetPlayer),
+    isTransferListed: isListed,
+    contract: {
+      ...targetPlayer.contract,
+      ...(isListed && customBuyout !== undefined
+        ? { buyout: customBuyout }
+        : {}),
+    },
+  };
+
+  let updatedRoster: Player[];
+  let updatedBench: Player[];
+
+  if (location === "roster") {
+    updatedRoster = team.roster.map((p, i) =>
+      i === index ? updatedPlayer : clonePlayer(p)
+    );
+    updatedBench = team.bench.map(clonePlayer);
+  } else {
+    updatedRoster = team.roster.map(clonePlayer);
+    updatedBench = team.bench.map((p, i) =>
+      i === index ? updatedPlayer : clonePlayer(p)
+    );
+  }
+
+  const updatedTeam: Team = {
+    ...team,
+    roster: updatedRoster,
+    bench: updatedBench,
+  };
+
+  const action = isListed ? "listed on" : "delisted from";
+  return {
+    success: true,
+    message: `Successfully ${action} transfer market: ${targetPlayer.name} (${targetPlayer.alias}).`,
+    data: {
+      team: updatedTeam,
+      player: updatedPlayer,
+      message: `${targetPlayer.alias} ${action} transfer market`,
     },
   };
 }

@@ -108,3 +108,9 @@ export interface RosterActionResult {
   team: Team;
   message: string;
 }
+
+export interface TransferListingResult {
+  team: Team;
+  player: Player;
+  message: string;
+}
