@@ -1,7 +1,6 @@
 import {
   Team,
   MatchState,
-
 } from "../types";
 
 /**
