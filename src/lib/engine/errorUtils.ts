@@ -1,22 +1,22 @@
-import { MarketActionResult } from "../types";
+import { EngineResult } from "../types";
 
 /**
- * Error Utilities for Market Engine
+ * Error Utilities for Game Engine
  *
  * Provides standardized error result creation for consistent error handling
- * across all market actions.
+ * across all engine operations (market, events, rounds, etc.).
  */
 
 /**
- * Creates a standardized failure MarketActionResult.
+ * Creates a standardized failure EngineResult.
  * @param message - Human-readable error message
  * @param code - Machine-readable error code
- * @returns MarketActionResult with success: false
+ * @returns EngineResult with success: false
  */
 export function makeFailure<T>(
   message: string,
   code: string,
-): MarketActionResult<T> {
+): EngineResult<T> {
   return {
     success: false,
     message,

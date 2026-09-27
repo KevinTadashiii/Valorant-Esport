@@ -1,8 +1,8 @@
 import {
   BuyoutResult,
   Contract,
+  EngineResult,
   LoanResult,
-  MarketActionResult,
   Player,
   RosterActionResult,
   Team,
@@ -61,7 +61,7 @@ export interface TerminateParams {
  */
 export function buyoutPlayer(
   params: BuyoutParams,
-): MarketActionResult<BuyoutResult> {
+): EngineResult<BuyoutResult> {
   try {
     const { buyerTeam, targetPlayer, sellerTeam, newContract } = params;
     const buyoutCost = targetPlayer.contract.buyout;
@@ -126,7 +126,7 @@ export function buyoutPlayer(
  * Borrows a player at a low upfront cost while deducting from the regular budget.
  * Sets isLoaned to true and places the player on the borrower's bench.
  */
-export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
+export function loanPlayer(params: LoanParams): EngineResult<LoanResult> {
   try {
     const { borrowerTeam, targetPlayer, lendingTeam, loanFee, loanDuration } =
       params;
@@ -207,7 +207,7 @@ export function loanPlayer(params: LoanParams): MarketActionResult<LoanResult> {
  */
 export function terminateContract(
   params: TerminateParams,
-): MarketActionResult<TerminationResult> {
+): EngineResult<TerminationResult> {
   try {
     const {
       team,
@@ -268,7 +268,7 @@ export function swapRosterAndBench(
   team: Team,
   rosterPlayerId: string,
   benchPlayerId: string,
-): MarketActionResult<RosterActionResult> {
+): EngineResult<RosterActionResult> {
   try {
     const rosterIndex = team.roster.findIndex((p) => p.id === rosterPlayerId);
     const benchIndex = team.bench.findIndex((p) => p.id === benchPlayerId);
@@ -323,7 +323,7 @@ export function movePlayerToRoster(
   team: Team,
   benchPlayerId: string,
   replacePlayerId?: string,
-): MarketActionResult<RosterActionResult> {
+): EngineResult<RosterActionResult> {
   try {
     const benchIndex = team.bench.findIndex((p) => p.id === benchPlayerId);
 
@@ -336,7 +336,6 @@ export function movePlayerToRoster(
 
     const benchPlayer = clonePlayer(team.bench[benchIndex]);
 
-    // If roster is not full, simply add the player
     if (team.roster.length < DEFAULT_ROSTER_LIMIT) {
       const newRoster = [...team.roster.map(clonePlayer), benchPlayer];
       const newBench = team.bench
@@ -359,7 +358,6 @@ export function movePlayerToRoster(
       };
     }
 
-    // Roster is full - need a replacement
     if (!replacePlayerId) {
       return makeFailure<RosterActionResult>(
         `Roster is full (${DEFAULT_ROSTER_LIMIT} players). Specify a player to replace.`,
@@ -407,7 +405,7 @@ export function movePlayerToRoster(
 export function movePlayerToBench(
   team: Team,
   rosterPlayerId: string,
-): MarketActionResult<RosterActionResult> {
+): EngineResult<RosterActionResult> {
   try {
     const rosterIndex = team.roster.findIndex((p) => p.id === rosterPlayerId);
 
@@ -456,7 +454,7 @@ export function setPlayerTransferListing(
   playerId: string,
   isListed: boolean,
   customBuyout?: number,
-): MarketActionResult<TransferListingResult> {
+): EngineResult<TransferListingResult> {
   try {
     const found = findPlayerInTeam(team, playerId);
     if (!found) {
