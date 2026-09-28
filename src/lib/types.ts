@@ -75,7 +75,7 @@ export interface RoundSimulationResult {
   matchWinner?: "teamA" | "teamB";
 }
 
-export interface MarketActionResult<T = unknown> {
+export interface EngineResult<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
