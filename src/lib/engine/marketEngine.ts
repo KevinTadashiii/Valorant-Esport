@@ -12,11 +12,8 @@ import {
 
 import {
   DEFAULT_ROSTER_LIMIT,
-  DEFAULT_LOAN_FEE_RATIO,
   DEFAULT_TERMINATION_PENALTY_RATE,
   DEFAULT_TERMINATION_MORALE_PENALTY_PERCENT,
-  MIN_MORALE,
-  MAX_MORALE,
   clonePlayer,
   cloneTeam,
   findPlayerInTeam,
@@ -59,9 +56,7 @@ export interface TerminateParams {
  * from the buyer's budget, removes the player from the seller team (if provided),
  * and appends the player to the buyer's bench.
  */
-export function buyoutPlayer(
-  params: BuyoutParams,
-): EngineResult<BuyoutResult> {
+export function buyoutPlayer(params: BuyoutParams): EngineResult<BuyoutResult> {
   try {
     const { buyerTeam, targetPlayer, sellerTeam, newContract } = params;
     const buyoutCost = targetPlayer.contract.buyout;
@@ -84,7 +79,10 @@ export function buyoutPlayer(
         );
       }
 
-      const sellerAfterRemoval = removePlayerFromTeam(sellerTeam, targetPlayer.id);
+      const sellerAfterRemoval = removePlayerFromTeam(
+        sellerTeam,
+        targetPlayer.id,
+      );
       updatedSellerTeam = adjustTeamBudget(sellerAfterRemoval, buyoutCost);
     }
 
@@ -138,7 +136,8 @@ export function loanPlayer(params: LoanParams): EngineResult<LoanResult> {
       );
     }
 
-    const fee = loanFee !== undefined ? loanFee : calculateLoanFee(targetPlayer);
+    const fee =
+      loanFee !== undefined ? loanFee : calculateLoanFee(targetPlayer);
     const duration =
       loanDuration !== undefined
         ? loanDuration
@@ -162,7 +161,10 @@ export function loanPlayer(params: LoanParams): EngineResult<LoanResult> {
         );
       }
 
-      const lendingAfterRemoval = removePlayerFromTeam(lendingTeam, targetPlayer.id);
+      const lendingAfterRemoval = removePlayerFromTeam(
+        lendingTeam,
+        targetPlayer.id,
+      );
       updatedLendingTeam = adjustTeamBudget(lendingAfterRemoval, fee);
     }
 
@@ -239,8 +241,12 @@ export function terminateContract(
     // Apply morale penalty to remaining players in roster and bench
     const updatedTeam: Team = {
       ...adjustTeamBudget(teamAfterRemoval, -penalty),
-      roster: teamAfterRemoval.roster.map((p) => applyMoralePenalty(p, moralePenaltyPercent)),
-      bench: teamAfterRemoval.bench.map((p) => applyMoralePenalty(p, moralePenaltyPercent)),
+      roster: teamAfterRemoval.roster.map((p) =>
+        applyMoralePenalty(p, moralePenaltyPercent),
+      ),
+      bench: teamAfterRemoval.bench.map((p) =>
+        applyMoralePenalty(p, moralePenaltyPercent),
+      ),
     };
 
     return {

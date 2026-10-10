@@ -13,10 +13,7 @@ import { EngineResult } from "../types";
  * @param code - Machine-readable error code
  * @returns EngineResult with success: false
  */
-export function makeFailure<T>(
-  message: string,
-  code: string,
-): EngineResult<T> {
+export function makeFailure<T>(message: string, code: string): EngineResult<T> {
   return {
     success: false,
     message,

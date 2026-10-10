@@ -1,8 +1,4 @@
-import {
-  Contract,
-  Player,
-  Team,
-} from "../types";
+import { Player, Team } from "../types";
 
 /**
  * Market Helper Utilities
@@ -118,14 +114,18 @@ export function updatePlayerInTeam(
   if (location === "roster") {
     return {
       ...team,
-      roster: team.roster.map((p, i) => (i === index ? updatedPlayer : clonePlayer(p))),
+      roster: team.roster.map((p, i) =>
+        i === index ? updatedPlayer : clonePlayer(p),
+      ),
       bench: team.bench.map(clonePlayer),
     };
   }
   return {
     ...team,
     roster: team.roster.map(clonePlayer),
-    bench: team.bench.map((p, i) => (i === index ? updatedPlayer : clonePlayer(p))),
+    bench: team.bench.map((p, i) =>
+      i === index ? updatedPlayer : clonePlayer(p),
+    ),
   };
 }
 
